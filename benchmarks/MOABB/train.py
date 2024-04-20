@@ -10,6 +10,7 @@ Author
 ------
 Davide Borra, 2022
 Mirco Ravanelli, 2023
+Victor Cruz, 2024
 """
 
 import pickle
@@ -21,6 +22,7 @@ import numpy as np
 import logging
 import sys
 from utils.dataio_iterators import LeaveOneSessionOut, LeaveOneSubjectOut
+from utils.graphdataio_iterators import GraphLeaveOneSessionOut, GraphLeaveOneSubjectOut
 from torchinfo import summary
 import speechbrain as sb
 import yaml
@@ -54,12 +56,21 @@ class MOABBBrain(sb.Brain):
         # Normalization
         if hasattr(self.hparams, "normalize"):
             inputs = self.hparams.normalize(inputs)
-        return self.modules.model(inputs)
+        
+        if self.hparams.graph:
+            #For graphs
+            edges = batch[1].to(self.device)
+            #return self.modules.model(inputs, edges).repeat(inputs.shape[0],1)
+            return self.modules.model(inputs, edges)
+        else:
+            return self.modules.model(inputs)
 
     def compute_objectives(self, predictions, batch, stage):
         "Given the network predictions and targets computes the loss."
-        targets = batch[1].to(self.device)
-
+        if self.hparams.graph:
+            targets = batch[2].to(self.device)
+        else:
+            targets = batch[1].to(self.device)
         # Target augmentation
         N_augments = int(predictions.shape[0] / targets.shape[0])
         targets = torch.cat(N_augments * [targets], dim=0)
@@ -75,7 +86,10 @@ class MOABBBrain(sb.Brain):
             # From log to linear predictions
             tmp_preds = torch.exp(predictions)
             self.preds.extend(tmp_preds.detach().cpu().numpy())
-            self.targets.extend(batch[1].detach().cpu().numpy())
+            if self.hparams.graph:
+                self.targets.extend(batch[2].detach().cpu().numpy())
+            else:
+                self.targets.extend(batch[1].detach().cpu().numpy())
         else:
             if hasattr(self.hparams, "lr_annealing"):
                 self.hparams.lr_annealing.on_batch_end(self.optimizer)
@@ -90,13 +104,13 @@ class MOABBBrain(sb.Brain):
             + tuple(np.floor(self.hparams.input_shape[1:-1]).astype(int))
             + (1,)
         )
-        model_summary = summary(
-            self.hparams.model, input_size=in_shape, device=self.device
-        )
-        with open(
-            os.path.join(self.hparams.exp_dir, "model.txt"), "w"
-        ) as text_file:
-            text_file.write(str(model_summary))
+        #model_summary = summary(
+        #    self.hparams.model, input_size=in_shape, device=self.device
+        #)
+        #with open(
+        #    os.path.join(self.hparams.exp_dir, "model.txt"), "w"
+        #) as text_file:
+        #    text_file.write(str(model_summary))
 
     def on_stage_start(self, stage, epoch=None):
         "Gets called when a stage (either training, validation, test) starts."
@@ -246,14 +260,17 @@ class MOABBBrain(sb.Brain):
 
 def run_experiment(hparams, run_opts, datasets):
     """This function performs a single training (e.g., single cross-validation fold)"""
-    idx_examples = np.arange(datasets["train"].dataset.tensors[0].shape[0])
-    n_examples_perclass = [
-        idx_examples[
-            np.where(datasets["train"].dataset.tensors[1] == c)[0]
-        ].shape[0]
-        for c in range(hparams["n_classes"])
-    ]
-    n_examples_perclass = np.array(n_examples_perclass)
+    if hparams["graph"]:
+        n_examples_perclass = np.unique(datasets['train'].dataset.labels, return_counts=True)[-1]
+    else:    
+        idx_examples = np.arange(datasets["train"].dataset.tensors[0].shape[0])
+        n_examples_perclass = [
+            idx_examples[
+                np.where(datasets["train"].dataset.tensors[1] == c)[0]
+            ].shape[0]
+            for c in range(hparams["n_classes"])
+        ]
+        n_examples_perclass = np.array(n_examples_perclass)
     class_weights = n_examples_perclass.max() / n_examples_perclass
     hparams["class_weights"] = class_weights
 
@@ -269,21 +286,40 @@ def run_experiment(hparams, run_opts, datasets):
     )
     logger = logging.getLogger(__name__)
     logger.info("Experiment directory: {0}".format(hparams["exp_dir"]))
-    logger.info(
-        "Input shape: {0}".format(
-            datasets["train"].dataset.tensors[0].shape[1:]
+    if hparams["graph"]:
+        # different notation needed to interact with dataloader for graph representation
+        logger.info(
+            "Input shape: {0}".format(
+                datasets['train'].dataset[0][0].shape
+            )
         )
-    )
-    logger.info(
-        "Training set avg value: {0}".format(
-            datasets["train"].dataset.tensors[0].mean()
+        logger.info(
+            "Training set avg value: {0}".format(
+                #torch.cat([data.x for data in datasets['train']], dim=0).mean().item()
+                datasets["train"].dataset.features.mean()
+            )
         )
-    )
-    datasets_summary = "Number of examples: {0} (training), {1} (validation), {2} (test)".format(
-        datasets["train"].dataset.tensors[0].shape[0],
-        datasets["valid"].dataset.tensors[0].shape[0],
-        datasets["test"].dataset.tensors[0].shape[0],
-    )
+        datasets_summary = "Number of examples: {0} (training), {1} (validation), {2} (test)".format(
+            len(datasets['train'].dataset),
+            len(datasets['valid'].dataset),
+            len(datasets['test'].dataset),
+        )
+    else:
+        logger.info(
+            "Input shape: {0}".format(
+                datasets["train"].dataset.tensors[0].shape[1:]
+            )
+        )
+        logger.info(
+            "Training set avg value: {0}".format(
+                datasets["train"].dataset.tensors[0].mean()
+            )
+        )
+        datasets_summary = "Number of examples: {0} (training), {1} (validation), {2} (test)".format(
+            datasets["train"].dataset.tensors[0].shape[0],
+            datasets["valid"].dataset.tensors[0].shape[0],
+            datasets["test"].dataset.tensors[0].shape[0],
+        )
     logger.info(datasets_summary)
 
     brain = MOABBBrain(
@@ -338,6 +374,42 @@ def prepare_dataset_iterators(hparams):
     """Preprocesses the dataset and partitions it into train, valid and test sets."""
     # defining data iterator to use
     print("Prepare dataset iterators...")
+    if hparams["graph"] :
+        #we need to process the dataset differently to generate the edge indexes and custom dataloader
+        print("Prepare with Graph representation...")
+        if hparams["data_iterator_name"] == "leave-one-session-out":
+            data_iterator = GraphLeaveOneSessionOut(
+                seed=hparams["seed"]
+            )  # within-subject and cross-session
+        elif hparams["data_iterator_name"] == "leave-one-subject-out":
+            data_iterator = GraphLeaveOneSubjectOut(
+                seed=hparams["seed"]
+            )  # cross-subject and cross-session
+        else:
+            raise ValueError(
+                "Unknown data_iterator_name: %s" % hparams["data_iterator_name"]
+            )
+        
+        tail_path, datasets = data_iterator.prepare(
+            data_folder=hparams["data_folder"],
+            dataset=hparams["dataset"],
+            cached_data_folder=hparams["cached_data_folder"],
+            batch_size=hparams["batch_size"],
+            valid_ratio=hparams["valid_ratio"],
+            target_subject_idx=hparams["target_subject_idx"],
+            target_session_idx=hparams["target_session_idx"],
+            events_to_load=hparams["events_to_load"],
+            original_sample_rate=hparams["original_sample_rate"],
+            sample_rate=hparams["sample_rate"],
+            fmin=hparams["fmin"],
+            fmax=hparams["fmax"],
+            tmin=hparams["tmin"],
+            tmax=hparams["tmax"],
+            save_prepared_dataset=hparams["save_prepared_dataset"],
+            n_steps_channel_selection=hparams["n_steps_channel_selection"],
+        )
+        return tail_path, datasets
+    
     if hparams["data_iterator_name"] == "leave-one-session-out":
         data_iterator = LeaveOneSessionOut(
             seed=hparams["seed"]
@@ -350,7 +422,7 @@ def prepare_dataset_iterators(hparams):
         raise ValueError(
             "Unknown data_iterator_name: %s" % hparams["data_iterator_name"]
         )
-
+    
     tail_path, datasets = data_iterator.prepare(
         data_folder=hparams["data_folder"],
         dataset=hparams["dataset"],
@@ -381,11 +453,20 @@ def load_hparams_and_dataset_iterators(hparams_file, run_opts, overrides):
 
     tail_path, datasets = prepare_dataset_iterators(hparams)
     # override C and T, to be sure that network input shape matches the dataset (e.g., after time cropping or channel sampling)
-    overrides.update(
-        T=datasets["train"].dataset.tensors[0].shape[1],
-        C=datasets["train"].dataset.tensors[0].shape[-2],
-        n_train_examples=datasets["train"].dataset.tensors[0].shape[0],
+    if hparams["graph"]:
+        x_shape = datasets['train'].dataset[0][0].shape
+        #print(f"the shape of the input is as follows:{x_shape}")
+        overrides.update(
+            T=x_shape[1],
+            C=x_shape[-2],
+            n_train_examples=len(datasets['train'].dataset)  # Total number of training examples
     )
+    else:
+        overrides.update(
+            T=datasets["train"].dataset.tensors[0].shape[1],
+            C=datasets["train"].dataset.tensors[0].shape[-2],
+            n_train_examples=datasets["train"].dataset.tensors[0].shape[0],
+        )
 
     # loading hparams for the each training and evaluation processes
     with open(hparams_file) as fin:
@@ -403,6 +484,7 @@ def load_hparams_and_dataset_iterators(hparams_file, run_opts, overrides):
 
 
 if __name__ == "__main__":
+
     argv = sys.argv[1:]
     # loading hparams to prepare the dataset and the data iterators
     hparams_file, run_opts, overrides = sb.core.parse_arguments(argv)
