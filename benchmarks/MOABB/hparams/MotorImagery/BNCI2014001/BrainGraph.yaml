@@ -132,6 +132,7 @@ dropout: 0 # @orion_step1: --dropout~"uniform(0.0, 0.5)"
 model: !new:models.BrainGraph.GCN
     hidden_channels: 256
     num_node_features: !ref <T>
+    channels: !ref <C> 
     num_classes: !ref <n_classes>
     dropout: !ref <dropout>
 #model: !new:torch_geometric.nn.models.GCN

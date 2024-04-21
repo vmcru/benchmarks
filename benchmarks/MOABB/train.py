@@ -104,13 +104,14 @@ class MOABBBrain(sb.Brain):
             + tuple(np.floor(self.hparams.input_shape[1:-1]).astype(int))
             + (1,)
         )
-        #model_summary = summary(
-        #    self.hparams.model, input_size=in_shape, device=self.device
-        #)
-        #with open(
-        #    os.path.join(self.hparams.exp_dir, "model.txt"), "w"
-        #) as text_file:
-        #    text_file.write(str(model_summary))
+        if not self.hparams.graph:
+            model_summary = summary(
+                self.hparams.model, input_size=in_shape, device=self.device
+            )
+            with open(
+                os.path.join(self.hparams.exp_dir, "model.txt"), "w"
+            ) as text_file:
+                text_file.write(str(model_summary))
 
     def on_stage_start(self, stage, epoch=None):
         "Gets called when a stage (either training, validation, test) starts."
@@ -457,7 +458,7 @@ def load_hparams_and_dataset_iterators(hparams_file, run_opts, overrides):
         x_shape = datasets['train'].dataset[0][0].shape
         #print(f"the shape of the input is as follows:{x_shape}")
         overrides.update(
-            T=x_shape[1],
+            T=x_shape[0],
             C=x_shape[-2],
             n_train_examples=len(datasets['train'].dataset)  # Total number of training examples
     )
