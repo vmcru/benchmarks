@@ -19,11 +19,12 @@ class GCN(torch.nn.Module):
         self.lin3 = Linear(hidden_channels, num_classes)
         self.soft = torch.nn.LogSoftmax(dim=-1)
 
-    def forward(self, x, edge_index):
+    def forward(self, data):
+        x = data.x
+        edge_index = data.edge_index
         # 1. Obtain node embeddings 
         x = x.squeeze(-1)
         #x = x.movedim(-1,-2)
-        edge_index = edge_index[0]
         x = self.conv1(x, edge_index)
         x = self.bn1(x)
         x = x.relu()

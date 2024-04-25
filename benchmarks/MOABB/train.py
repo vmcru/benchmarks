@@ -43,9 +43,25 @@ class MOABBBrain(sb.Brain):
 
     def compute_forward(self, batch, stage):
         "Given an input batch it computes the model output."
-        inputs = batch[0].to(self.device)
-
+        
         # Perform data augmentation
+        if self.hparams.graph:
+            shape = batch.x.shape
+            inputs = batch.x.view(batch.__len__(), int(shape[0]/batch.__len__()), shape[1], shape[2])
+            if stage == sb.Stage.TRAIN and hasattr(self.hparams, "augment"):
+                inputs, _ = self.hparams.augment(
+                    inputs.squeeze(3),
+                    lengths=torch.ones(batch.__len__(), device=self.device),
+                )
+                inputs = inputs.unsqueeze(3)
+
+            # Normalization
+            if hasattr(self.hparams, "normalize"):
+                inputs = self.hparams.normalize(inputs)
+            batch.x = inputs
+            return self.modules.model(batch)
+
+        inputs = batch[0].to(self.device)
         if stage == sb.Stage.TRAIN and hasattr(self.hparams, "augment"):
             inputs, _ = self.hparams.augment(
                 inputs.squeeze(3),
@@ -57,18 +73,12 @@ class MOABBBrain(sb.Brain):
         if hasattr(self.hparams, "normalize"):
             inputs = self.hparams.normalize(inputs)
         
-        if self.hparams.graph:
-            #For graphs
-            edges = batch[1].to(self.device)
-            #return self.modules.model(inputs, edges).repeat(inputs.shape[0],1)
-            return self.modules.model(inputs, edges)
-        else:
-            return self.modules.model(inputs)
+        return self.modules.model(inputs)
 
     def compute_objectives(self, predictions, batch, stage):
         "Given the network predictions and targets computes the loss."
         if self.hparams.graph:
-            targets = batch[2].to(self.device)
+            targets = batch.y.to(self.device)
         else:
             targets = batch[1].to(self.device)
         # Target augmentation
@@ -87,7 +97,7 @@ class MOABBBrain(sb.Brain):
             tmp_preds = torch.exp(predictions)
             self.preds.extend(tmp_preds.detach().cpu().numpy())
             if self.hparams.graph:
-                self.targets.extend(batch[2].detach().cpu().numpy())
+                self.targets.extend(batch.y.detach().cpu().numpy())
             else:
                 self.targets.extend(batch[1].detach().cpu().numpy())
         else:
@@ -291,19 +301,18 @@ def run_experiment(hparams, run_opts, datasets):
         # different notation needed to interact with dataloader for graph representation
         logger.info(
             "Input shape: {0}".format(
-                datasets['train'].dataset[0][0].shape
+                list(datasets['train'].dataset[0].x.shape)
             )
         )
         logger.info(
             "Training set avg value: {0}".format(
-                #torch.cat([data.x for data in datasets['train']], dim=0).mean().item()
-                datasets["train"].dataset.features.mean()
+                np.array([np.array(datasets['train'].dataset[i].x).mean() for i in range(datasets['train'].dataset.__len__())]).mean()
             )
         )
         datasets_summary = "Number of examples: {0} (training), {1} (validation), {2} (test)".format(
-            len(datasets['train'].dataset),
-            len(datasets['valid'].dataset),
-            len(datasets['test'].dataset),
+            datasets['train'].dataset.__len__(),
+            datasets['valid'].dataset.__len__(),
+            datasets['test'].dataset.__len__(),
         )
     else:
         logger.info(
@@ -455,13 +464,13 @@ def load_hparams_and_dataset_iterators(hparams_file, run_opts, overrides):
     tail_path, datasets = prepare_dataset_iterators(hparams)
     # override C and T, to be sure that network input shape matches the dataset (e.g., after time cropping or channel sampling)
     if hparams["graph"]:
-        x_shape = datasets['train'].dataset[0][0].shape
+        x_shape = datasets['train'].dataset[0].x.shape
         #print(f"the shape of the input is as follows:{x_shape}")
         overrides.update(
             T=x_shape[0],
             C=x_shape[-2],
-            n_train_examples=len(datasets['train'].dataset)  # Total number of training examples
-    )
+            n_train_examples=datasets['train'].dataset.__len__()  # Total number of training examples
+        )
     else:
         overrides.update(
             T=datasets["train"].dataset.tensors[0].shape[1],
