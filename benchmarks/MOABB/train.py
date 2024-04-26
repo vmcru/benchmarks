@@ -47,7 +47,7 @@ class MOABBBrain(sb.Brain):
         # Perform data augmentation
         if self.hparams.graph:
             shape = batch.x.shape
-            inputs = batch.x.view(batch.__len__(), int(shape[0]/batch.__len__()), shape[1], shape[2])
+            inputs = batch.x.view(batch.__len__(), int(shape[0]/batch.__len__()), shape[1], shape[2]).to(self.device)
             if stage == sb.Stage.TRAIN and hasattr(self.hparams, "augment"):
                 inputs, _ = self.hparams.augment(
                     inputs.squeeze(3),
@@ -59,7 +59,7 @@ class MOABBBrain(sb.Brain):
             if hasattr(self.hparams, "normalize"):
                 inputs = self.hparams.normalize(inputs)
             batch.x = inputs
-            return self.modules.model(batch)
+            return self.modules.model(batch.to(self.device))
 
         inputs = batch[0].to(self.device)
         if stage == sb.Stage.TRAIN and hasattr(self.hparams, "augment"):
