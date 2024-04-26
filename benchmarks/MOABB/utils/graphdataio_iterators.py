@@ -16,7 +16,7 @@ import numpy as np
 import torch
 from torch.utils.data import TensorDataset, Dataset, DataLoader
 from torch_geometric.data import Data
-
+import torch_geometric
 
 
 import os
@@ -99,20 +99,24 @@ class GraphTensorDataset(Dataset):
         
         Returns
         ---------
-        dataset
+        Data
 
     """
     def __init__(self, features, labels, edge_index):
-        self.features = features
+        self.len = len(features)
         self.labels = labels
         self.edge_index = edge_index
+        self.channels = features.size(-2)
+        self.num_features = features.size(-3)
+        
+        self.dataset = [Data(x=features[i], edge_index=edge_index, num_nodes=self.channels, y = labels[i]) for i in range(self.len)]
 
     def __len__(self):
-        return len(self.features)
+        return self.len
 
     def __getitem__(self, idx):
         # Return data as a Data object, which is common in PyTorch Geometric
-        return self.features[idx], self.edge_index, self.labels[idx]   #Data(x=self.features[idx], edge_index=self.edge_index, y=self.labels[idx])
+        return self.dataset[idx]  #Data(x=self.features[idx], edge_index=self.edge_index, y=self.labels[idx])
 
 
 def create_dataset(xy, edge_index):
@@ -133,10 +137,10 @@ def get_dataloader(batch_size, xy_train, xy_valid, xy_test, edges):
     test_dataset = create_dataset(xy_test, edges)
 
     # Use PyTorch Geometric DataLoader
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, pin_memory=True)
-    valid_loader = DataLoader(valid_dataset, batch_size=batch_size, pin_memory=True)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, pin_memory=True)
-
+    train_loader = torch_geometric.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, pin_memory=True)
+    valid_loader = torch_geometric.data.DataLoader(valid_dataset, batch_size=batch_size, pin_memory=True)
+    test_loader = torch_geometric.data.DataLoader(test_dataset, batch_size=batch_size, pin_memory=True)
+    
     return train_loader, valid_loader, test_loader
 
 
