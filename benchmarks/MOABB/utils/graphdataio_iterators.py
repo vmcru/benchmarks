@@ -108,7 +108,6 @@ class GraphTensorDataset(Dataset):
         self.edge_index = edge_index
         self.channels = features.size(-2)
         self.num_features = features.size(-3)
-        
         self.dataset = [Data(x=features[i], edge_index=edge_index, num_nodes=self.channels, y = labels[i]) for i in range(self.len)]
 
     def __len__(self):
@@ -122,7 +121,7 @@ class GraphTensorDataset(Dataset):
 def create_dataset(xy, edge_index):
     """Helper function for get_dataloader to create thedata dataset for each dataloader. simplify and create better readability"""
     x, y = xy[0], xy[1]
-    x_tensor = torch.Tensor(x.reshape((x.shape[0], x.shape[1], x.shape[2], 1)))
+    x_tensor = torch.Tensor(x.reshape((x.shape[0], x.shape[1], x.shape[2])))
     y_tensor = torch.tensor(y, dtype=torch.long)
     dataset = GraphTensorDataset(x_tensor, y_tensor, edge_index)
     return dataset

@@ -21,10 +21,10 @@ class GCN(torch.nn.Module):
 
     def forward(self, data):
         x = data.x
-        edge_index = data.edge_index
+        edge_index = data.edge_index.to(x.device)
         # 1. Obtain node embeddings 
-        x = x.squeeze(-1)
         x = x.movedim(-1,-2)
+        #x = x.contiguous().view(x.shape[0]*x.shape[1], x.shape[2]).to(x.device)
         x = self.conv1(x, edge_index)
         x = self.bn1(x)
         x = x.relu()
@@ -37,6 +37,7 @@ class GCN(torch.nn.Module):
         x = x.relu()
         
         # 2. Readout layer
+
         x = global_mean_pool(x, None)  # [batch_size, hidden_channels]
 
         # 3. Apply a final classifier
@@ -46,5 +47,4 @@ class GCN(torch.nn.Module):
         x = self.lin2(x)
         x = F.dropout(x, p=self.dropout, training=self.training)
         x = self.lin3(x)
-        
         return self.soft(x)
