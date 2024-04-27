@@ -4,3 +4,5 @@ orion
 orion[profet]
 scikit-learn
 torchinfo
+torch_geometric
+torch_scatter

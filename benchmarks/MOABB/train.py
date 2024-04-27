@@ -47,19 +47,19 @@ class MOABBBrain(sb.Brain):
         # Perform data augmentation
         if self.hparams.graph:
             shape = batch.x.shape
-            inputs = batch.x.view(batch.__len__(), int(shape[0]/batch.__len__()), shape[1], shape[2]).to(self.device)
+            inputs = batch.x.view(batch.__len__(), int(shape[0]/batch.__len__()), shape[1]).to(self.device)
             if stage == sb.Stage.TRAIN and hasattr(self.hparams, "augment"):
                 inputs, _ = self.hparams.augment(
-                    inputs.squeeze(3),
+                    inputs,
                     lengths=torch.ones(batch.__len__(), device=self.device),
                 )
-                inputs = inputs.unsqueeze(3)
+                #inputs = inputs.unsqueeze(3)
 
             # Normalization
             if hasattr(self.hparams, "normalize"):
                 inputs = self.hparams.normalize(inputs)
             batch.x = inputs
-            return self.modules.model(batch.to(self.device))
+            return self.modules.model(batch)
 
         inputs = batch[0].to(self.device)
         if stage == sb.Stage.TRAIN and hasattr(self.hparams, "augment"):
@@ -77,6 +77,7 @@ class MOABBBrain(sb.Brain):
 
     def compute_objectives(self, predictions, batch, stage):
         "Given the network predictions and targets computes the loss."
+
         if self.hparams.graph:
             targets = batch.y.to(self.device)
         else:
@@ -468,7 +469,7 @@ def load_hparams_and_dataset_iterators(hparams_file, run_opts, overrides):
         #print(f"the shape of the input is as follows:{x_shape}")
         overrides.update(
             T=x_shape[0],
-            C=x_shape[-2],
+            C=x_shape[-1],
             n_train_examples=datasets['train'].dataset.__len__()  # Total number of training examples
         )
     else:
