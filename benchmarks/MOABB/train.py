@@ -46,19 +46,19 @@ class MOABBBrain(sb.Brain):
         
         # Perform data augmentation
         if self.hparams.graph:
-            shape = batch.x.shape
-            inputs = batch.x.view(batch.__len__(), int(shape[0]/batch.__len__()), shape[1]).to(self.device)
+            shape = batch[0].shape
+            inputs = batch[0].to(self.device)
             if stage == sb.Stage.TRAIN and hasattr(self.hparams, "augment"):
                 inputs, _ = self.hparams.augment(
                     inputs,
-                    lengths=torch.ones(batch.__len__(), device=self.device),
+                    lengths=torch.ones(batch[0].__len__(), device=self.device),
                 )
                 #inputs = inputs.unsqueeze(3)
 
             # Normalization
             if hasattr(self.hparams, "normalize"):
                 inputs = self.hparams.normalize(inputs)
-            batch.x = inputs
+            batch[0] = inputs
             return self.modules.model(batch)
 
         inputs = batch[0].to(self.device)
@@ -79,7 +79,7 @@ class MOABBBrain(sb.Brain):
         "Given the network predictions and targets computes the loss."
 
         if self.hparams.graph:
-            targets = batch.y.to(self.device)
+            targets = batch[2].to(self.device)
         else:
             targets = batch[1].to(self.device)
         # Target augmentation
@@ -98,7 +98,7 @@ class MOABBBrain(sb.Brain):
             tmp_preds = torch.exp(predictions)
             self.preds.extend(tmp_preds.detach().cpu().numpy())
             if self.hparams.graph:
-                self.targets.extend(batch.y.detach().cpu().numpy())
+                self.targets.extend(batch[-1].detach().cpu().numpy())
             else:
                 self.targets.extend(batch[1].detach().cpu().numpy())
         else:
@@ -302,12 +302,13 @@ def run_experiment(hparams, run_opts, datasets):
         # different notation needed to interact with dataloader for graph representation
         logger.info(
             "Input shape: {0}".format(
-                list(datasets['train'].dataset[0].x.shape)
+                list(datasets['train'].dataset[0][0].shape)
             )
         )
         logger.info(
             "Training set avg value: {0}".format(
-                np.array([np.array(datasets['train'].dataset[i].x).mean() for i in range(datasets['train'].dataset.__len__())]).mean()
+                #np.array([np.array(datasets['train'].dataset[i].x).mean() for i in range(datasets['train'].dataset.__len__())]).mean()
+                datasets['train'].dataset[0][0].mean()
             )
         )
         datasets_summary = "Number of examples: {0} (training), {1} (validation), {2} (test)".format(
@@ -465,7 +466,7 @@ def load_hparams_and_dataset_iterators(hparams_file, run_opts, overrides):
     tail_path, datasets = prepare_dataset_iterators(hparams)
     # override C and T, to be sure that network input shape matches the dataset (e.g., after time cropping or channel sampling)
     if hparams["graph"]:
-        x_shape = datasets['train'].dataset[0].x.shape
+        x_shape = datasets['train'].dataset[0][0].shape
         #print(f"the shape of the input is as follows:{x_shape}")
         overrides.update(
             T=x_shape[0],

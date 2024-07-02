@@ -103,20 +103,22 @@ class GraphTensorDataset(Dataset):
 
     """
     def __init__(self, features, labels, edge_index):
+
         self.len = len(features)
         self.labels = labels
         self.edge_index = edge_index
         self.channels = features.size(-2)
         self.num_features = features.size(-3)
-        self.dataset = [Data(x=features[i], edge_index=edge_index, num_nodes=self.channels, y = labels[i]) for i in range(self.len)]
+        self.features = features
+        #self.dataset = [Data(x=features[i], edge_index=edge_index, num_nodes=self.channels, y = labels[i]) for i in range(self.len)]
 
     def __len__(self):
         return self.len
 
     def __getitem__(self, idx):
         # Return data as a Data object, which is common in PyTorch Geometric
-        return self.dataset[idx]  #Data(x=self.features[idx], edge_index=self.edge_index, y=self.labels[idx])
-
+        #return self.dataset[idx]  #Data(x=self.features[idx], edge_index=self.edge_index, y=self.labels[idx])
+        return self.features[idx], self.edge_index, self.labels[idx]
 
 def create_dataset(xy, edge_index):
     """Helper function for get_dataloader to create thedata dataset for each dataloader. simplify and create better readability"""
@@ -136,9 +138,9 @@ def get_dataloader(batch_size, xy_train, xy_valid, xy_test, edges):
     test_dataset = create_dataset(xy_test, edges)
 
     # Use PyTorch Geometric DataLoader
-    train_loader = torch_geometric.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, pin_memory=True)
-    valid_loader = torch_geometric.data.DataLoader(valid_dataset, batch_size=batch_size, pin_memory=True)
-    test_loader = torch_geometric.data.DataLoader(test_dataset, batch_size=batch_size, pin_memory=True)
+    train_loader = torch_geometric.loader.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, pin_memory=True)
+    valid_loader = torch_geometric.loader.DataLoader(valid_dataset, batch_size=batch_size, pin_memory=True)
+    test_loader = torch_geometric.loader.DataLoader(test_dataset, batch_size=batch_size, pin_memory=True)
     
     return train_loader, valid_loader, test_loader
 
