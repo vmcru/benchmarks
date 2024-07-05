@@ -130,26 +130,33 @@ input_shape: [null, !ref <T>, !ref <C>, null]
 dropout: 0 # @orion_step1: --dropout~"uniform(0.0, 0.5)"
 #
 #hyperparams
-kdeg1: 3 # @orion_step1: --kdeg1~"uniform(1, 3,discrete=True)"
-kdeg2: 2 # @orion_step1: --kdeg2~"uniform(1, 3,discrete=True)"
-kdeg3: 1 # @orion_step1: --kdeg3~"uniform(1, 3,discrete=True)"
+#kdeg1: 3 # @orion_step1: --kdeg1~"uniform(1, 3,discrete=True)"
+#kdeg2: 2 # @orion_step1: --kdeg2~"uniform(1, 3,discrete=True)"
+#kdeg3: 1 # @orion_step1: --kdeg3~"uniform(1, 3,discrete=True)"
 hidden_channels1: 256  # @orion_step1: --hidden_channels1~"choices([ 32, 64, 128, 256, 512, 1024])"
-hidden_channels2: 256  # @orion_step1: --hidden_channels2~"choices([ 32, 64, 128, 256, 512, 1024])"
+#hidden_channels2: 256  # @orion_step1: --hidden_channels2~"choices([ 32, 64, 128, 256, 512, 1024])"
 hidden_channels3: 256  # @orion_step1: --hidden_channels3~"choices([ 32, 64, 128, 256, 512, 1024])"
 activation_type: 'elu'
+#for GAT 3
+#heads: 1
+#for PNA 4
+#aggregators
+#scalers
+#deg
+
 
 model: !new:models.BrainGraph.GCN
-    kdeg1: !ref <kdeg1>
-    kdeg2: !ref <kdeg2>
-    kdeg3: !ref <kdeg3>
+    #kdeg1: !ref <kdeg1>
+    #kdeg2: !ref <kdeg2>
+    #kdeg3: !ref <kdeg3>
     hidden_channels1: !ref <hidden_channels1>
-    hidden_channels2: !ref <hidden_channels2>
-    hidden_channels3: !ref <hidden_channels3>
+    #hidden_channels2: !ref <hidden_channels2>
+    hidden_channels3: !ref <hidden_channels3> #becomes output channel  when using models
     num_node_features: !ref <T>
     channels: !ref <C> 
     num_classes: !ref <n_classes>
     activation_type: !ref <activation_type>
-    test: 2
+    test: 3
     
 #model: !new:torch_geometric.nn.models.GCN
 #    in_channels: !ref <C>
