@@ -134,14 +134,13 @@ dropout: 0 # @orion_step1: --dropout~"uniform(0.0, 0.5)"
 hidden_channels1: 256  # @orion_step1: --hidden_channels1~"choices([256, 512, 128])"
 
 hidden_channels3: 256  # @orion_step1: --hidden_channels3~"choices([256, 512, 128])"
-activation_type: 'elu'
+activation_type: 'relu'
 #for GAT 3
-#heads: 1
+#heads: 1 
 #for PNA 4
-#aggregators
-#scalers
-#deg
-test_num: 1
+#aggregators: 'var'
+#scalers: 'identity'
+test_num: 4
 num_layers: 2 # @orion_step1: --num_layers~"choices([2,3,1])"
 
 model: !new:models.BrainGraph.GCN
@@ -158,4 +157,5 @@ model: !new:models.BrainGraph.GCN
     test: !ref <test_num>
     num_layers: !ref <num_layers>
     dropout: !ref <dropout>
-    
+
+

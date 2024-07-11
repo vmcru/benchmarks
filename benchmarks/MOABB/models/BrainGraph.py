@@ -82,15 +82,16 @@ class GCN(torch.nn.Module):
                                     heads = 2)
         elif test==4:
             self.text = test
+            #TODO fix model setup
             self.model = models.PNA(in_channels=num_node_features, 
                                     hidden_channels=hidden_channels1, 
                                     out_channels=hidden_channels3,
                                     num_layers=num_layers, 
                                     dropout=dropout,
                                     act=activation_type,
-        #                            aggregators = , 
-        #                            scalers = 
-        #                            deg = 2
+                                    aggregators = 'var', 
+                                    scalers = 'identity',
+                                    deg = 2
                                     )
         else:    
             self.conv1 = ChebConv(num_node_features, hidden_channels1,kdeg1)
@@ -108,6 +109,7 @@ class GCN(torch.nn.Module):
         if self.test!=0 :
             batch_new = from_static(x, edge_index)
             #AddLaplacianEigenvectorPE()
+            
             x = self.model(batch_new.x, batch_new.edge_index.to(x.device))
 
         else:
