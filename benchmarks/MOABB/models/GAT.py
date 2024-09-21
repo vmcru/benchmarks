@@ -37,7 +37,8 @@ class GCN(torch.nn.Module):
                 activation_type="elu", 
                 test=0, 
                 num_layers=1, 
-                dropout=0):
+                dropout=0,
+                heads=1):
         super(GCN, self).__init__()
 
         # Choose activation function
@@ -76,7 +77,7 @@ class GCN(torch.nn.Module):
                                     num_layers=num_layers, 
                                     dropout=dropout,
                                     act=activation_type,
-                                    heads=2)
+                                    heads=heads)
         elif test == 4:
             self.model = models.PNA(in_channels=num_node_features, 
                                     hidden_channels=hidden_channels1, 
