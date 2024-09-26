@@ -4,8 +4,9 @@ import torch.nn.functional as F
 from torch.nn import Linear
 import torch_geometric.nn.models as models
 from torch_geometric.data import Batch, Data
+from torch_geometric.transforms import AddLaplacianEigenvectorPE, AddRandomWalkPE
 
-def from_static(x, edges):
+def from_static(x, edges, count=0, transform=None):
     '''
     Take static graph and adapt it to usable graph for complex operations.
     
@@ -15,9 +16,22 @@ def from_static(x, edges):
         Input feature map.
     edges : torch.tensor
         Edge matrix.
+    transform: str
+        choices "laplace" "randomwalk"
     '''
-    if len(edges.shape) == 3:
+    #setup positional encodings
+    if transform=="laplace":
+        transform = AddLaplacianEigenvectorPE(k=count,attr_name=None,is_undirected=True)
+    elif transform=="randomwalk":
+        transform = AddRandomWalkPE(walk_length=count,attr_name=None,is_undirected=True)
+    
+    #generate batch
+    if len(edges.shape) == 3 and count > 0:
+        data_list = [transform(Data(x=x_, edge_index=edges[0])) for x_ in x]
+    elif len(edges.shape) == 3:
         data_list = [Data(x=x_, edge_index=edges[0]) for x_ in x]
+    elif count > 0:
+        data_list = [transform(Data(x=x_, edge_index=edges)) for x_ in x] 
     else:
         data_list = [Data(x=x_, edge_index=edges) for x_ in x] 
     batch = Batch.from_data_list(data_list) 
@@ -37,7 +51,9 @@ class GCN(torch.nn.Module):
                 activation_type="elu", 
                 test=0, 
                 num_layers=1, 
-                dropout=0):
+                dropout=0,
+                pe=None,
+                count=0):
         super(GCN, self).__init__()
 
         # Choose activation function
@@ -53,7 +69,10 @@ class GCN(torch.nn.Module):
             raise ValueError(f"Unsupported activation function: {activation_type}")
 
         self.test = test
-
+        self.pe = pe
+        self.count = count
+        #TODO fix eigevectors and other functionality
+        num_node_features=num_node_features+self.count
         # Initialize the appropriate model based on the `test` flag
         if test == 1:
             self.model = models.GCN(in_channels=num_node_features, 
@@ -102,7 +121,7 @@ class GCN(torch.nn.Module):
 
         x = x.movedim(-1,-2)
         
-        newbatch = from_static(x,edge_index)
+        newbatch = from_static(x,edge_index,self.count, self.pe)
 
         if self.test != 0:
             # If using one of the predefined models

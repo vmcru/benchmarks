@@ -144,6 +144,10 @@ activation_type: 'elu'
 test_num: 1
 num_layers: 2 # @orion_step1: --num_layers~"choices([2,3,1])"
 
+#choices "laplace" "randomwalk"
+pe: laplace
+count: 5
+
 model: !new:models.BrainGraph.GCN
     #kdeg1: !ref <kdeg1>
     #kdeg2: !ref <kdeg2>
@@ -158,4 +162,5 @@ model: !new:models.BrainGraph.GCN
     test: !ref <test_num>
     num_layers: !ref <num_layers>
     dropout: !ref <dropout>
-    
+    pe: !ref <pe>
+    count: !ref <count>
