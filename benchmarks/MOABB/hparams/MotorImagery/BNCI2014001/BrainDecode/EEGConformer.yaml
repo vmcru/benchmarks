@@ -127,28 +127,19 @@ normalize: !name:speechbrain.processing.signal_processing.mean_std_norm
 # MODEL
 input_shape: [null, !ref <T>, !ref <C>, null]
 n_outputs: !ref <n_classes>
-n_chans: !ref <C>
-n_times: !ref <T>
-second_kernel_size_0: 2 # @orion_step1: --second_kernel_size_0~"uniform(1, 4, discrete=True)"
-second_kernel_size_1: 32 # @orion_step1: --second_kernel_size_1~"uniform(1, 64, discrete=True)"
-second_kernel_size: [!ref <second_kernel_size_0>, !ref <second_kernel_size_1>]
-third_kernel_size_0: 8 # @orion_step1: --third_kernel_size_0~"uniform(1, 8, discrete=True)"
-third_kernel_size_1: 4 # @orion_step1: --third_kernel_size_1~"uniform(1, 8, discrete=True)"
-third_kernel_size: [!ref <third_kernel_size_0>, !ref <third_kernel_size_1>]
-drop_prob: 0.25 # @orion_step1: --drop_prob~"uniform(0.0, 0.5)"
+filter_time_length: 11
+pool_time_length: 5
+pool_time_stride: 6
 
+braindecode: True
 
-braindecode_model: !new:braindecode.models.EEGNetv1
-    n_chans: !ref <C>
+braindecode_model: !new:braindecode.models.EEGConformer
     n_outputs: !ref <n_classes>
+    n_chans: !ref <C>
     n_times: !ref <T>
-    second_kernel_size: !ref <second_kernel_size>
-    third_kernel_size: !ref <third_kernel_size>
-    drop_prob: !ref <drop_prob>
-    #activation: nn.Module = nn.ELU,
-    #chs_info: None
-    #input_window_seconds: None
-    #sfreq: None
+    filter_time_length: !ref <filter_time_length>
+    pool_time_length: !ref <pool_time_length>
+    pool_time_stride: !ref <pool_time_stride>
 
 model: !new:models.BraindecodeNN.BraindecodeNN
     model: !ref <braindecode_model>
