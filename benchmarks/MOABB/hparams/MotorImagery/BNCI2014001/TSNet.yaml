@@ -130,7 +130,7 @@ input_shape: [null, !ref <T>, !ref <C>, null]
 dropout: 0 
 
 # hyperparams
-hidden_channels1: 256  # @orion_step1: --hidden_channels1~"choices([256, 512, 128])"
+hidden_channels1: 128  # @orion_step1: --hidden_channels1~"choices([256, 512, 128])"
 hidden_channels3: 256  # @orion_step1: --hidden_channels3~"choices([256, 512, 128])"
 activation_type: 'elu'
 test_num: 5  # Use 5 for TSNet

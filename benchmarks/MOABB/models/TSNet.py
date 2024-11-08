@@ -89,31 +89,6 @@ class GCN(torch.nn.Module):
                                     num_layers=num_layers,
                                     dropout=dropout,
                                     act=activation_type)
-        elif test == 2:
-            self.model = models.GraphSAGE(in_channels=num_node_features, 
-                                        hidden_channels=hidden_channels1, 
-                                        out_channels=hidden_channels3,
-                                        num_layers=num_layers, 
-                                        dropout=dropout,
-                                        act=activation_type)
-        elif test == 3:
-            self.model = models.GAT(in_channels=num_node_features, 
-                                    hidden_channels=hidden_channels1, 
-                                    out_channels=hidden_channels3,
-                                    num_layers=num_layers, 
-                                    dropout=dropout,
-                                    act=activation_type,
-                                    heads=2)
-        elif test == 4:
-            self.model = models.PNA(in_channels=num_node_features, 
-                                    hidden_channels=hidden_channels1, 
-                                    out_channels=hidden_channels3,
-                                    num_layers=num_layers, 
-                                    dropout=dropout,
-                                    act=activation_type,
-                                    aggregators=['mean', 'var', 'min', 'max'], 
-                                    scalers=['identity', 'amplification', 'attenuation'],
-                                    deg=torch.tensor([2]))  # Assuming `deg` is a tensor or replace with actual degree tensor
         elif test == 5:
             self.model = TSNet(in_channels=num_node_features, 
                                     hidden_channels=hidden_channels1, 

@@ -11,7 +11,7 @@ from torch_geometric.utils import add_remaining_self_loops
 from torch_geometric.utils.num_nodes import maybe_num_nodes
 from torch_scatter import scatter_add
 
-device = torch.device("mps")
+device = torch.device("cuda:1")
 
 ## Author: Alex Tong
 ## Reference: Data-Driven Learning of Geometric Scattering Networks, IEEE Machine Learning for Signal Processing Workshop 2021
