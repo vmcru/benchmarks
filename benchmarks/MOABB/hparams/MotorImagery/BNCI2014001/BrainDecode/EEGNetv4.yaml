@@ -129,31 +129,32 @@ input_shape: [null, !ref <T>, !ref <C>, null]
 n_outputs: !ref <n_classes>
 n_chans: !ref <C>
 n_times: !ref <T>
-final_conv_length: "auto"
-pool_mode: "mean" 
-F1: 8 # @orion_step1: --F1~"uniform(4, 16, discrete=True)"
-D: 2 # @orion_step1: --D~"uniform(1, 4, discrete=True)"
-F2: !ref <F1> * <D> 
-kernel_length: 64 # @orion_step1: --kernel_length~"uniform(32, 128, discrete=True)"
-
-drop_prob: 0.25 # @orion_step1: --drop_prob~"uniform(0.0, 0.5)"
-
+F1: 8  # @orion_step1: --F1~"uniform(4, 16, discrete=True)"
+D: 2  
+F2: !ref <F1> * <D>
+kernel_length: 64  # @orion_step1: --kernel_length~"uniform(4, 64, discrete=True)"
+depthwise_kernel_length: 16  # @orion_step1: --depthwise_kernel_length~"uniform(8, 32, discrete=True)"
+pool1_kernel_size: 4  # @orion_step1: --pool1_kernel_size~"uniform(2, 8, discrete=True)"
+pool1_stride_size: !ref <pool1_kernel_size>
+pool2_kernel_size: 8  # @orion_step1: --pool2_kernel_size~"uniform(4, 16, discrete=True)"
+pool2_stride_size: !ref <pool2_kernel_size>
+drop_prob: 0.25  # @orion_step1: --drop_prob~"uniform(0.0, 0.5)"
 
 braindecode_model: !new:braindecode.models.EEGNetv4
-    n_outputs: !ref <n_classes>
-    n_chans: !ref <C>
-    n_times: !ref <T>
-    final_conv_length: !ref <final_conv_length>
-    pool_mode: !ref <pool_mode>
-    F1: !ref <F1>
-    D: !ref <D>
-    F2: !ref <F2>
-    kernel_length: !ref <kernel_length>
-    drop_prob: !ref <drop_prob>
-    #activation: nn.Module = nn.ELU,
-    #chs_info: None
-    #input_window_seconds: None
-    #sfreq: None
+  n_outputs: !ref <n_classes>
+  n_chans: !ref <C>
+  n_times: !ref <T>
+  F1: !ref <F1>
+  D: !ref <D>
+  F2: !ref <F2>
+  kernel_length: !ref <kernel_length>
+  depthwise_kernel_length: !ref <depthwise_kernel_length>
+  pool1_kernel_size: !ref <pool1_kernel_size>
+  pool1_stride_size: !ref <pool1_stride_size>
+  pool2_kernel_size: !ref <pool2_kernel_size>
+  pool2_stride_size: !ref <pool2_stride_size>
+
+  drop_prob: !ref <drop_prob>
 
 model: !new:models.BraindecodeNN.BraindecodeNN
-    model: !ref <braindecode_model>
+  model: !ref <braindecode_model>

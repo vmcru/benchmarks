@@ -137,6 +137,7 @@ third_kernel_size_1: 4 # @orion_step1: --third_kernel_size_1~"uniform(1, 8, disc
 third_kernel_size: [!ref <third_kernel_size_0>, !ref <third_kernel_size_1>]
 drop_prob: 0.25 # @orion_step1: --drop_prob~"uniform(0.0, 0.5)"
 
+braindecode: True
 
 braindecode_model: !new:braindecode.models.EEGNetv1
     n_chans: !ref <C>

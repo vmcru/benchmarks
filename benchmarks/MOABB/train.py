@@ -90,14 +90,14 @@ class MOABBBrain(sb.Brain):
             + tuple(np.floor(self.hparams.input_shape[1:-1]).astype(int))
             + (1,)
         )
-        if not self.hparams.braindecode:
-            model_summary = summary(
-                self.hparams.model, input_size=in_shape, device=self.device
-            )
-            with open(
-                os.path.join(self.hparams.exp_dir, "model.txt"), "w"
-            ) as text_file:
-                text_file.write(str(model_summary))
+
+        model_summary = summary(
+            self.hparams.model, input_size=in_shape, device=self.device
+        )
+        with open(
+            os.path.join(self.hparams.exp_dir, "model.txt"), "w"
+        ) as text_file:
+            text_file.write(str(model_summary))
 
     def on_stage_start(self, stage, epoch=None):
         "Gets called when a stage (either training, validation, test) starts."
